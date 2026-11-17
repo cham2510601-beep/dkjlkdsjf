@@ -1,0 +1,427 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMART WATT | 스마트 전력 분석</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, "Malgun Gothic", sans-serif;
+  background: #f3f6fc;
+  color: #17243b;
+}
+header {
+  background: linear-gradient(135deg,#123b85,#2879e8);
+  color: white;
+  padding: 38px 20px;
+  text-align: center;
+}
+header h1 { margin: 0; font-size: 32px; letter-spacing: 2px; }
+header p { color: #dceaff; margin-bottom: 0; }
+.container { max-width: 1000px; margin: 28px auto; padding: 0 18px; }
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 23px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 18px #19345b0d;
+}
+h2 { font-size: 19px; margin-top: 0; }
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 14px;
+}
+label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 7px; }
+input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d8e0ec;
+  border-radius: 9px;
+  font-size: 15px;
+  outline-color: #2879e8;
+}
+button {
+  border: 0;
+  padding: 12px 17px;
+  border-radius: 9px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 14px;
+}
+.primary { background: #2168d5; color: white; }
+.primary:hover { background: #174fae; }
+.secondary { background: #eaf1fc; color: #215bb2; }
+.delete { background: #fff0f0; color: #d34343; padding: 8px 12px; }
+.full { width: 100%; margin-top: 16px; }
+.hint { color: #718097; font-size: 12px; line-height: 1.6; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 13px;
+}
+.stat {
+  background: #f1f6ff;
+  padding: 19px;
+  border-radius: 12px;
+}
+.stat span { color: #65748a; font-size: 13px; }
+.stat strong { display: block; color: #2168d5; font-size: 25px; margin-top: 9px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th,td { padding: 12px 8px; text-align: center; border-bottom: 1px solid #edf0f5; }
+th { color: #64748b; background: #f7f9fc; }
+.chart-row { margin: 18px 0; }
+.chart-info { display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px; }
+.bar-bg { background:#edf1f7; height:13px; border-radius:20px; overflow:hidden; }
+.bar { height:100%; background:linear-gradient(90deg,#3277e8,#56a5fa); border-radius:20px; }
+.analysis {
+  padding: 17px;
+  background: #edf5ff;
+  border-radius: 12px;
+  line-height: 1.7;
+  color: #214d8c;
+}
+.saving-result {
+  background: #f0faf4;
+  color: #187c49;
+  padding: 16px;
+  border-radius: 10px;
+  margin-top: 13px;
+  line-height: 1.8;
+}
+footer { text-align:center; color:#8290a5; padding:25px; font-size:12px; }
+@media(max-width:600px) {
+  .form-grid { grid-template-columns:1fr; }
+  .stats { grid-template-columns:1fr; }
+  .card { padding:17px; }
+  header h1 { font-size:27px; }
+  .table-wrap { overflow-x:auto; }
+  table { min-width:580px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ SMART WATT</h1>
+  <p>우리 집 전력 사용량을 쉽고 똑똑하게 분석하세요.</p>
+</header>
+
+<div class="container">
+
+  <section class="card">
+    <h2>① 전자제품 정보 입력</h2>
+    <div class="form-grid">
+      <div>
+        <label for="name">전자제품 이름</label>
+        <input id="name" placeholder="예: 컴퓨터">
+      </div>
+      <div>
+        <label for="power">소비전력 (W)</label>
+        <input id="power" type="number" min="0.01" step="any" placeholder="예: 300">
+      </div>
+      <div>
+        <label for="hours">하루 사용 시간 (시간)</label>
+        <input id="hours" type="number" min="0" max="24" step="any" placeholder="예: 5">
+      </div>
+      <div>
+        <label for="days">한 달 사용 일수 (일)</label>
+        <input id="days" type="number" min="1" max="31" step="1" value="30">
+      </div>
+    </div>
+    <button class="primary full" onclick="addProduct()">＋ 전자제품 추가하기</button>
+    <p class="hint">제품의 소비전력은 제품 설명서나 제품에 표시된 정격 소비전력을 참고하세요.</p>
+  </section>
+
+  <section class="card">
+    <h2>② 예상 전기요금 설정</h2>
+    <label for="rate">계산용 전력 단가 (원/kWh)</label>
+    <input id="rate" type="number" min="0" value="100">
+    <p class="hint">기본값 100원은 계산을 위한 예시 단가입니다. 실제 가정용 전기요금은 누진제와 기본요금 등으로 인해 달라집니다.</p>
+    <button class="secondary" onclick="render()">요금 다시 계산하기</button>
+  </section>
+
+  <section class="card">
+    <h2>③ 전체 전력 사용량 분석</h2>
+    <div class="stats">
+      <div class="stat">
+        <span>하루 전력 사용량</span>
+        <strong id="daily">0 kWh</strong>
+      </div>
+      <div class="stat">
+        <span>월간 전력 사용량</span>
+        <strong id="monthly">0 kWh</strong>
+      </div>
+      <div class="stat">
+        <span>예상 월간 전기요금</span>
+        <strong id="cost">0원</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>④ 등록된 전자제품</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>제품명</th>
+            <th>소비전력</th>
+            <th>하루 사용</th>
+            <th>월간 사용량</th>
+            <th>삭제</th>
+          </tr>
+        </thead>
+        <tbody id="productList">
+          <tr><td colspan="5">등록된 제품이 없습니다.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>⑤ 전자제품별 전력 소비량 비교</h2>
+    <div id="chart">
+      <p class="hint">전자제품을 추가하면 비교 그래프가 나타납니다.</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>⑥ 전력 소비 분석 결과</h2>
+    <div class="analysis" id="analysis">
+      전자제품을 추가하면 전력 소비 분석 결과가 표시됩니다.
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>⑦ 전력 절약 시뮬레이션</h2>
+    <p class="hint">전자제품의 하루 사용 시간을 줄였을 때 얼마나 절약되는지 계산합니다.</p>
+    <label for="savingProduct">분석할 전자제품</label>
+    <select id="savingProduct" style="width:100%;padding:12px;border:1px solid #d8e0ec;border-radius:9px;">
+      <option value="">전자제품을 먼저 추가하세요.</option>
+    </select>
+    <div style="margin-top:15px;">
+      <label for="newHours">변경할 하루 사용 시간</label>
+      <input id="newHours" type="number" min="0" max="24" step="any" placeholder="예: 3">
+    </div>
+    <button class="primary full" onclick="simulate()">절약 효과 계산하기</button>
+    <div id="savingResult" class="saving-result" style="display:none;"></div>
+  </section>
+
+  <section style="text-align:center;margin:25px 0;">
+    <button class="secondary" onclick="resetAll()">전체 데이터 초기화</button>
+  </section>
+
+</div>
+
+<footer>
+  SMART WATT | 전력 사용량 분석 프로젝트<br>
+  전력 절약으로 만드는 더 나은 일상
+</footer>
+
+<script>
+let products = [];
+
+const $ = id => document.getElementById(id);
+const number = n => Number(n).toLocaleString("ko-KR", {
+  maximumFractionDigits: 2
+});
+const money = n => Math.round(n).toLocaleString("ko-KR") + "원";
+
+function addProduct() {
+  const name = $("name").value.trim();
+  const power = Number($("power").value);
+  const hours = Number($("hours").value);
+  const days = Number($("days").value);
+
+  if (!name || $("power").value === "" ||
+      $("hours").value === "" || $("days").value === "") {
+    alert("모든 정보를 입력해 주세요.");
+    return;
+  }
+
+  if (!Number.isFinite(power) || power <= 0 ||
+      !Number.isFinite(hours) || hours < 0 || hours > 24 ||
+      !Number.isInteger(days) || days < 1 || days > 31) {
+    alert("소비전력은 0보다 커야 하며, 사용 시간은 0~24시간, 사용 일수는 1~31일이어야 합니다.");
+    return;
+  }
+
+  products.push({
+    id: Date.now() + Math.random(),
+    name, power, hours, days
+  });
+
+  $("name").value = "";
+  $("power").value = "";
+  $("hours").value = "";
+  $("days").value = "30";
+  $("savingResult").style.display = "none";
+  render();
+}
+
+function removeProduct(id) {
+  products = products.filter(p => p.id !== id);
+  $("savingResult").style.display = "none";
+  render();
+}
+
+function render() {
+  const rate = Number($("rate").value);
+
+  if (!Number.isFinite(rate) || rate < 0) {
+    alert("전력 단가는 0 이상의 숫자를 입력해 주세요.");
+    return;
+  }
+
+  const list = $("productList");
+  const chart = $("chart");
+  const select = $("savingProduct");
+
+  list.innerHTML = "";
+  chart.innerHTML = "";
+  select.innerHTML = "";
+
+  if (products.length === 0) {
+    list.innerHTML = '<tr><td colspan="5">등록된 제품이 없습니다.</td></tr>';
+    chart.innerHTML = '<p class="hint">전자제품을 추가하면 비교 그래프가 나타납니다.</p>';
+    $("daily").textContent = "0 kWh";
+    $("monthly").textContent = "0 kWh";
+    $("cost").textContent = "0원";
+    $("analysis").textContent = "전자제품을 추가하면 분석 결과가 표시됩니다.";
+    select.innerHTML = '<option value="">전자제품을 먼저 추가하세요.</option>';
+    return;
+  }
+
+  let totalDaily = 0;
+  let totalMonthly = 0;
+  let highest = null;
+
+  products.forEach(p => {
+    const daily = p.power * p.hours / 1000;
+    const monthly = daily * p.days;
+    totalDaily += daily;
+    totalMonthly += monthly;
+
+    if (!highest || monthly > highest.monthly) {
+      highest = {...p, monthly};
+    }
+
+    const tr = document.createElement("tr");
+    [p.name, number(p.power) + " W",
+     number(p.hours) + "시간", number(monthly) + " kWh"
+    ].forEach(value => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    const td = document.createElement("td");
+    const btn = document.createElement("button");
+    btn.className = "delete";
+    btn.textContent = "삭제";
+    btn.addEventListener("click", () => removeProduct(p.id));
+    td.appendChild(btn);
+    tr.appendChild(td);
+    list.appendChild(tr);
+
+    const option = document.createElement("option");
+    option.value = p.id;
+    option.textContent = p.name;
+    select.appendChild(option);
+  });
+
+  $("daily").textContent = number(totalDaily) + " kWh";
+  $("monthly").textContent = number(totalMonthly) + " kWh";
+  $("cost").textContent = money(totalMonthly * rate);
+
+  const max = Math.max(...products.map(p =>
+    p.power * p.hours / 1000 * p.days
+  ), 0.0001);
+
+  products.forEach(p => {
+    const monthly = p.power * p.hours / 1000 * p.days;
+    const row = document.createElement("div");
+    row.className = "chart-row";
+
+    const info = document.createElement("div");
+    info.className = "chart-info";
+
+    const name = document.createElement("span");
+    name.textContent = p.name;
+
+    const value = document.createElement("strong");
+    value.textContent = number(monthly) + " kWh";
+
+    info.append(name, value);
+
+    const bg = document.createElement("div");
+    bg.className = "bar-bg";
+
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    bar.style.width = (monthly / max * 100) + "%";
+
+    bg.appendChild(bar);
+    row.append(info, bg);
+    chart.appendChild(row);
+  });
+
+  const share = totalMonthly > 0
+    ? highest.monthly / totalMonthly * 100 : 0;
+
+  $("analysis").textContent =
+    "현재 가장 많은 전력을 소비하는 제품은 " +
+    highest.name + "입니다. 월간 사용량은 " +
+    number(highest.monthly) + " kWh이며, 전체 전력 사용량의 " +
+    number(share) + "%를 차지합니다. 해당 제품의 사용 시간을 조절하면 전력 소비를 줄이는 데 도움이 될 수 있습니다.";
+}
+
+function simulate() {
+  const id = Number($("savingProduct").value);
+  const p = products.find(item => item.id === id);
+  const newHours = Number($("newHours").value);
+
+  if (!p || $("newHours").value === "") {
+    alert("제품과 변경할 사용 시간을 입력해 주세요.");
+    return;
+  }
+
+  if (!Number.isFinite(newHours) || newHours < 0 || newHours > 24) {
+    alert("사용 시간은 0~24시간으로 입력해 주세요.");
+    return;
+  }
+
+  if (newHours > p.hours) {
+    alert("기존 사용 시간보다 짧거나 같은 시간을 입력해 주세요.");
+    return;
+  }
+
+  const oldUsage = p.power * p.hours * p.days / 1000;
+  const newUsage = p.power * newHours * p.days / 1000;
+  const saved = oldUsage - newUsage;
+  const rate = Number($("rate").value);
+
+  $("savingResult").style.display = "block";
+  $("savingResult").textContent =
+    "사용 시간을 " + number(p.hours) + "시간에서 " +
+    number(newHours) + "시간으로 줄이면 한 달에 " +
+    number(saved) + " kWh의 전력을 절약할 수 있습니다. " +
+    "예상 요금 절약액은 " + money(saved * rate) + "입니다.";
+}
+
+function resetAll() {
+  if (!confirm("등록한 모든 데이터를 삭제할까요?")) return;
+  products = [];
+  $("savingResult").style.display = "none";
+  $("newHours").value = "";
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
